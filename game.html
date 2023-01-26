@@ -1,0 +1,649 @@
+<div id="board-interface-container" style="display: flex; align-items: center">
+	<table id="game-board"></table>
+	<div id="action-button-container" class="button-container">
+		<button id="add-button" class="button">Add</button>
+		<button id="replace-button" class="button">Replace</button>
+		<button id="wheel-button" class="button">Wheel</button>
+		<button id="power-button" class="button">Power</button>
+	</div>
+	<div id="wheel-button-container" class="button-container" style="display: none">
+		<button id="top" class="button">Top</button>
+		<button id="right" class="button">Right</button>
+		<button id="bottom" class="button">Bottom</button>
+		<button id="left" class="button">Left</button>
+	</div>
+	<div id="player-button-container" class="button-container">
+		<button id="Neutral Player" class="button">Neutral</button>
+		<button id="Player 1" class="button">Player 1</button>
+		<button id="Player 2" class="button">Player 2</button>
+		<button id="Player 3" class="button">Player 3</button>
+		<button id="Player 4" class="button">Player 4</button>
+	</div>
+	<div id="chat-interface" style="background-color: darkgrey"></div>
+	<table id="score-table">
+		<thead>
+			<tr>
+			<th>Player</th>
+			<th>Score per turn</th>
+			<th>Cubes added per turn</th>
+			<th>Total card power activations</th>
+			<th>Total cards filled</th>
+			</tr>
+		</thead>
+		<tbody id="score-rows"></tbody>
+		<tbody id="cube-rows"></tbody>
+		<tbody id="card-activation-rows"></tbody>
+		<tbody id="card-filled-rows"></tbody>
+	</table>
+</div>
+<br><br><button id="new-game-button">Create New Game</button>
+<br><br><br><label for="player-number-dropdown">N.o players:</label>
+<select id="player-number-dropdown" class="GUI-input-field">
+  <option value="1">1</option>
+  <option value="2" selected>2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+</select>
+<label for="column-number-input">N.o cols:</label>
+<input type="number" id="column-number-input" value="4" min="1" class="GUI-input-field-small">
+<br><br><label for="add-value-input">Default add:</label>
+<input type="number" id="add-value-input" value="3" min="0" class="GUI-input-field-small">
+<label for="replace-value-input">Replace:</label>
+<input type="number" id="replace-value-input" value="2" min="0" class="GUI-input-field-small">
+<label for="wheel-value-input">Wheel:</label>
+<input type="number" id="wheel-value-input" value="1" min="0" class="GUI-input-field-small">
+<br><br><label>Shuffle cards:</label>
+<input type="checkbox" id="shuffle-checkbox" checked>
+<br><br><label for="card-numbers-input">Card numbers:</label>
+<textarea id="card-numbers-input" class="GUI-input-field-big">3, 3, 3, 3, 5, 5, 5, 5, 7, 7, 7, 7, 9, 9, 9, 9</textarea>
+<br><br><label for="neutral-scores-input">Neutral starting scores:</label>
+<textarea id="neutral-scores-input" class="GUI-input-field-big">1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4</textarea>
+
+<style>
+
+	:root {
+		--cardSize: 80px;
+		--backgroundColor: #999999;
+	}
+	body {
+		background-color: var(--backgroundColor);
+		font-family: Arial;
+		font-size: calc(1/6*var(--cardSize));
+	}
+	#chat-interface {
+		overflow: auto;
+		height: calc(4*var(--cardSize));
+		max-height: calc(4*var(--cardSize));
+		text-align: left;
+		width: calc(6*var(--cardSize));
+		display: block;
+		border: 2px solid grey;
+		margin-right: 24px;
+	}
+	#score-table {
+		border-collapse: collapse;
+		font-size: calc(1/6*var(--cardSize));
+		
+	}
+	#score-table th {
+		border: 1px solid grey;
+		background-color: #f2f2f2;
+		padding: 6px;
+		text-align: left;
+	}
+	#score-table td {
+		border: 1px solid grey;
+		padding: 6px;
+		text-align: center;
+		content: "0";
+	}
+	.button-container {
+		display: flex;
+		flex-direction: column;
+		width: calc(1.2*var(--cardSize));
+	}
+	.GUI-input-field-small {
+		width: calc(1*var(--cardSize));
+		vertical-align: center;
+	}
+	.GUI-input-field-big {
+		width: calc(3.5*var(--cardSize));
+		height: calc(1*var(--cardSize));
+		vertical-align: top;
+	}
+    .card {
+		position: relative;
+        width: var(--cardSize);
+        height: var(--cardSize);
+		font-weight: bold;
+		border: calc(1/35*var(--cardSize)) solid var(--backgroundColor);
+        border-radius: calc(1/12*var(--cardSize));
+		font-size: calc(2/5*var(--cardSize));
+        font-family: 'Comic Sans MS';
+		text-align: center;
+	}
+	.card-score-table {
+		height: var(--cardSize)/5;
+		width: calc(1/5*var(--cardSize));
+		borderCollapse: collapse;
+		font-size: calc(1/11*var(--cardSize));
+		position: absolute;
+		right: 0px;
+		top: 0px;
+	}
+	.card-score-cell {
+		font-size: calc(4/35*var(--cardSize));
+		font-family: Arial;
+		border-radius: 25%;
+		text-align: center;
+		color: white;
+		font-weight: bold;
+	}
+	.player-name-text {
+		position: absolute;
+		top: calc(1/25*var(--cardSize));
+		left: calc(1/25*var(--cardSize));
+		font-size: calc(3/25*var(--cardSize));
+		font-weight: bold;
+	}
+	.card-full-text {
+		position: absolute;
+		bottom: calc(1/25*var(--cardSize));
+		left: calc(1/25*var(--cardSize));
+		font-size: calc(3/25*var(--cardSize)); 
+		font-weight: bold;
+	}
+	.button {
+		height: calc(1/3*var(--cardSize));
+		width: var(--cardSize);
+		margin: calc(1/24*var(--cardSize));
+		vertical-align: middle;
+		display: none;
+		background-color: #d9d9d9;
+		border: 1px solid grey;
+	}
+	.glow { box-shadow: 0 0 10px #ff0; }
+	
+</style>
+
+<script>
+
+//////////////////////////////////////////////////////////   ARRAY PROCESSING FUNCTIONS   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+	// function to take an element id and parse its value into an array of ints
+	function parseElement(id) {
+		let elementString = document.getElementById(id).value;
+		let intArray = elementString.split(/[,;]/).map(function(elem) { return elem === "" ? NaN : Number(elem); }) // if invalid or blank, add NaN
+		return intArray; 
+	}
+
+	// function to take an array, and return an array of corresponding colors. Each unique number has a unique color e.g. 1 gets 1st color, 2 gets 2nd, etc
+	function createColorArray(array) {
+		let colorPalette = ["#FFFFFF","#F5A623", "#F7DC6F", "#F9E79F", "#FAFAD2", "#FFFFE0", "#E0FFFF", "#ADD8E6", "#87CEFA", "#87CEEB", "#00BFFF", "#1E90FF", "#6495ED"];
+		let colorArray = [];
+		array.forEach(number => {
+			if (!isNaN(number) && number >= 0 && number < colorPalette.length) { // check that its a number, positive and isn't larger than the length of colorPalette
+				colorArray[number] = colorPalette[number];
+			} else {
+				colorArray[number] = ""; // if it doesn't fit those conditions, set no color
+			}
+		});
+		return colorArray;
+	}
+	
+	// function to take any number of array arguments and shuffle them
+    function shuffleArrays() {
+		 
+		// zip all array arguments into one array
+		let arrays = Array.from(arguments);
+		let combinedArray = Array.from(arguments).reduce((acc, curr) => {
+			curr.forEach((val, index) => {
+				acc[index] = acc[index] ? [...acc[index], val] : [val];
+			});
+			return acc;	
+		}, []);
+		
+		// shuffle zipped array
+		for (let i = combinedArray.length - 1; i > 0; i--) {
+			let j = Math.floor(Math.random() * (i + 1));
+			[combinedArray[i], combinedArray[j]] = [combinedArray[j], combinedArray[i]];
+		};
+
+		// unzip again and return as an array of arrays
+		arrays = Array.from(Array(arrays.length), () => []);
+		combinedArray.forEach((subArray, i) => {
+			subArray.forEach((element, j) => {
+				arrays[j].push(element);
+			});
+		});		
+		return arrays;
+	};
+	
+	
+//////////////////////////////////////////////////////////   ACTION & POST-ACTION FUNCTIONS   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	// function to take a card and a player, and add to the player's score on that card
+	function addScore(card, players, player, add_num) {
+		let difference = card.number - card.scores.reduce((acc, score) => acc + score, 0); // calculate difference between card number and total score on card
+		if (add_num >= 0 ) {
+			add_num = difference >= add_num ? add_num : difference; // if score would be larger than card number, add only the difference
+			if (player.number !== 0) {
+				cubesPlaced[player.number] = cubesPlaced[player.number] + add_num;
+				scoreTable.rows[player.number].cells[2].innerHTML = cubesPlaced[player.number]/numberTurns[player.number]; // update scores table (exclude Neutral player)
+			};
+		} else {
+			add_num = card.scores[player.number] < Math.abs(add_num) ? -card.scores[player.number] : add_num; // if score would be less than 0, minus only the difference
+		};		
+		card.scores[player.number] = card.scores[player.number] + add_num;
+		checkForFullCard(card, players); // check if card is full
+		card.scoreCells[player.number].textContent = card.scores[player.number]; // update scoreCell HTML
+		playerTotalScore[player.number] = playerTotalScore[player.number] + add_num;
+		if (player.number !== 0) { scoreTable.rows[player.number].cells[1].innerHTML = playerTotalScore[player.number]/numberTurns[player.number] }; // update scores table (exclude Neutral player)
+		return add_num;
+	};
+	
+	// function to take all cards, a selected card and a player, remove player's name and grey from all card faces, and add it to selected card
+	function updateChosenCard(cards, selectedCard, player) { 
+		cards.forEach((card) => {
+			let playerNameElement = card.face.querySelector('.player-name-text'); 
+			if (playerNameElement && playerNameElement.innerHTML === player.name) { // check if card has a player's name on it, and it matches this player
+				card.face.removeChild(playerNameElement);
+				card.face.style.backgroundColor = card.color;
+			};
+		});
+
+		// add grey and player's name to selected card, and remove glow
+		let playerNameElement = document.createElement("div");
+		playerNameElement.classList.add("player-name-text"); 
+		playerNameElement.innerHTML = player.name; 
+		playerNameElement.style.color = player.color; 
+		selectedCard.face.classList.remove("glow");
+		selectedCard.face.style.backgroundColor = "gray";
+		selectedCard.face.appendChild(playerNameElement);
+	};
+	
+	// function to check if the total score on a card equals its number, and add the color of the player with the highest score on the card
+	function checkForFullCard(card, players) {
+		if (card.scores.reduce((acc, score) => acc + score, 0) === card.number) { // if total score on a card equals the number on it...
+			
+			// add "full!" text				
+			let cardFullText = document.createElement("div");
+			cardFullText.classList.add("card-full-text"); 
+			cardFullText.innerHTML = "Full!";
+			card.face.appendChild(cardFullText);		
+		
+			// change the number text on card to the color of the player with the highest score
+			let highestScore = Math.max(...card.scores.map(x => x));
+			let highestScoreIndex = card.scores.findIndex(x => x === highestScore);
+			if (card.scores.filter(x => x === highestScore).length === 1 && highestScoreIndex !== 0) { // if a non-neutral player has the highest non-tied score...
+				card.face.style.color = players[highestScoreIndex].color; // set color of card text to their color
+			} else {
+				card.face.style.color = "black"; // set color to black if highest score is a tie, or neutral player has the highest score
+			};
+			if (highestScoreIndex !== 0) { cardsFilled[highestScoreIndex] = scoreTable.rows[highestScoreIndex].cells[4].innerHTML = cardsFilled[highestScoreIndex] += 1; } // update scores table (exclude neutral player)
+		};
+	};
+	
+	// function to cycle turn to the next player
+	function cycleNextTurn(players, activePlayer) {
+		activePlayer = (activePlayer + 1) % players.slice(0, players.length+1).length; // iterate player counter to next player
+		if (activePlayer === 0) { activePlayer = activePlayer + 1 }; // skip neutral player
+		document.getElementById("chat-interface").innerHTML += "> <b style='color: " + players[activePlayer].color + ";'>" + players[activePlayer].name + "</b> "; // prompt next player to take their turn
+		return activePlayer;
+	};
+	
+	// function to take any number of arrays of buttons, and reset their display in the GUI
+	function resetButtons() {
+		Array.from(arguments).forEach(buttonSet => {
+			buttonSet.querySelectorAll("*").forEach((child) => {
+				child.style.display = "none";
+				child.style.backgroundColor = "#d9d9d9";
+				child.disabled = false;
+			});
+		});
+	};
+
+	// function to take a card and work out which position buttons should be shown for wheel and power actions, depending on the card's position on the board
+	function showPositionButtons(cards, selectedCard, positionButtons, ignoreFullCards=false) {
+		surroundingCards = cards.filter(c => { // get the 2-4 cards surrounding the selected card, and determine which buttons should be shown
+			return (c.row === selectedCard.row-1 && c.col === selectedCard.col && (c.name = "top")) ||
+			(c.row === selectedCard.row && c.col === selectedCard.col+1 && (c.name = "right")) ||
+			(c.row === selectedCard.row+1 && c.col === selectedCard.col && (c.name = "bottom")) ||
+			(c.row === selectedCard.row && c.col === selectedCard.col-1 && (c.name = "left"));
+		}); 
+		let shownPositionButtons = Array.from(positionButtons.querySelectorAll("*")).filter(child => { return surroundingCards.some(card => { return child.id === card.name; }); }); 
+		shownPositionButtons.forEach(child => {
+			child.style.display = "block"; // only show position buttons if there's a card there
+		}); 
+	};
+
+
+//////////////////////////////////////////////////////////    GAME BOARD CREATION FUNCTION    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	// create a new game board
+	function createGameBoard(shuffle) {
+		
+		// intialise some global variables for the score table, and objects to hold values for cards and players
+		let players = [{number: 0, name: "Neutral Player", color: "darkgoldenrod"}, {number: 1, name: "Player 1", color: "blue"}, {number: 2, name: "Player 2", color: "darkred"}, {number: 3, name: "Player 3", color: "purple"}, {number: 4, name: "Player 4", color: "orange"}];
+		let cards = [];
+		playerTotalScore = [];
+		cubesPlaced = [];
+		cardPowerActivations = [];
+		cardsFilled = [];
+		numberTurns = new Array(players.length).fill(0);
+		
+		// parse elements from GUI and calculate derived values
+		let nPlayers = parseElement("player-number-dropdown")[0]; // total players
+		let playersInGame = players.slice(0, nPlayers+1); // calculate number of players in the game
+		let nColumns = parseElement("column-number-input")[0]; // n.o of game board columns
+		let cardNumbers = parseElement("card-numbers-input"); // card face numbers
+		let cardColors = createColorArray(cardNumbers); // card colors
+		let neutralStartingScores = parseElement("neutral-scores-input"); // neutral player starting scores
+		let defaultAddValue = parseElement("add-value-input")[0]; // default value for add action
+		let defaultReplaceValue = parseElement("replace-value-input")[0]; // default value for replace action
+		let defaultWheelValue = parseElement("wheel-value-input")[0]; // default value for wheel action
+		
+		// reset previous game
+		let gameBoard = document.getElementById("game-board");
+		while (gameBoard.rows.length > 0) { gameBoard.deleteRow(0); }
+		if (shuffle) { [cardNumbers, neutralStartingScores] = shuffleArrays(cardNumbers, neutralStartingScores); } // if shuffle = true, re-shuffle cards
+		let activePlayer = 1; // choose first active player (exclude Neutral player)
+		document.getElementById("chat-interface").innerHTML = ""; // reset chat interface
+		document.getElementById("chat-interface").innerHTML += "<br>> <b style='color: " + players[activePlayer].color + ";'>" + players[activePlayer].name + "</b> "; // prompt them to take their turn
+		
+		// create score table to hold player stats
+		scoreTable = document.getElementById("score-table");
+		while (scoreTable.getElementsByTagName("tr").length > 1) { document.getElementById("score-table").deleteRow(1); } // remove rows from previous games
+		playersInGame.slice(1).forEach(player => {
+			let row = document.getElementById("score-table").insertRow();
+			let playerCell = row.insertCell(0).innerHTML = player.name; // add player names to first column
+			playerTotalScore[player.number] = row.insertCell(1).innerHTML = 0;
+			cubesPlaced[player.number] = row.insertCell(2).innerHTML = 0;
+			cardPowerActivations[player.number] = row.insertCell(3).innerHTML = 0;
+			cardsFilled[player.number] = row.insertCell(4).innerHTML = 0;
+		});
+
+/////////////////////////////////////////////////////////////   CARD CREATION LOOP   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		// create a card for each card number...
+		cardNumbers.forEach((n, i) => { // n = number on card being created, i = index of card being created
+		
+			// create game board rows
+			let rowPos = Math.floor(i / nColumns); 
+			if (!gameBoard.rows[rowPos]) gameBoard.insertRow(); // every [row] number of cards, start a new row
+			
+			// initialise values in card object (card face HTML, player score HTML, card number, color, player scores on card)
+			cards.push({face: [], scoreCells: [], number: n, row: rowPos, col: i % nColumns, color: cardColors[n], scores: new Array(nPlayers+1).fill(0)});
+			
+			// create new card, add to current row and apply card color
+			cards[i].face = gameBoard.rows[rowPos].insertCell();
+			cards[i].face.classList.add("card");
+			cards[i].face.style.backgroundColor = cards[i].color;
+
+			// for cards with valid (positive integer) card numbers...
+			if (Number.isFinite(cards[i].number)) {
+
+				// create card face
+				cards[i].face.innerHTML = cards[i].number; // add card number to card face
+				let scoreTable = document.createElement("table"); // create table to hold player scores that appear on each card
+				scoreTable.classList.add("card-score-table");
+				cards[i].face.appendChild(scoreTable);
+			
+				// set starting score on card for each player in the game
+				playersInGame.forEach(player => {
+				
+					// create a scoreCell in scoreTable, and add the player's color to it
+					let cell = scoreTable.insertRow().insertCell();
+					cell.classList.add("card-score-cell");
+					cell.style.backgroundColor = player.color;
+
+					// set each player's starting score on card
+					let startingScore = player.number === 0 ? neutralStartingScores[i] : 0; // if neutral player add score from neutralStartingScores, if player add 0
+					cell.textContent = startingScore;
+					cards[i].scores[player.number] = startingScore; // store startingScore in cardProperties
+					cards[i].scoreCells[player.number] = cell; // store scoreCell in cardProperties
+
+				});
+				
+				
+////////////////////////////////////////////////////////////   CARD BUTTON CLICK LISTENER   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+				// when a player clicks a card face...
+				cards[i].face.addEventListener("click", function() {
+
+					// remove glow from all other cards, and add to this card
+					if (!Number.isFinite(cards[i].number) || cards[i].face.querySelector('.player-name-text')) { return; }; // if card isn't valid or already has a player's name on it, do nothing
+					cards.forEach((c) => { c.face.querySelector('glow'); c.face.classList.remove("glow"); });
+					let glow = cards[i].face.classList.add("glow");
+					
+					// reset buttons from previous action
+					resetButtons(actionButtons, positionButtons, playerButtons);
+					actionButtons.querySelectorAll("*").forEach((child) => {child.style.display = "block"});					
+					if (cards[i].number === cards[i].scores.reduce((acc, score) => acc + score, 0)) { document.getElementById("add-button").style.display = "none"; }; // if card is full, the add button isn't visible. 
+					if (cards[i].scores[activePlayer] === cards[i].scores.reduce((acc, score) => acc + score, 0)) { document.getElementById("replace-button").style.display = "none"; }; // if no other players have a score on card, the replace button isn't visible
+					if (cards[i].scores.reduce((acc, score) => acc + score, 0) !== cards[i].number || cards[i].face.style.color !== players[activePlayer].color || cards[i].number === 9) { document.getElementById("power-button").style.display = "none"; }; // only show power button if card is full and owner by active player
+					numberTurns[activePlayer]++; // active player has started a new turn
+					lastClickedCard = cards[i];
+					
+				});	// end card face click listener
+			}; // end valid card creation if statement
+		}); // end card creation loop
+
+		// shorthand and initialisations to make below code easier to read
+		let actionButtons = document.getElementById("action-button-container");
+		let positionButtons = document.getElementById("wheel-button-container");
+		let playerButtons = document.getElementById("player-button-container");
+		let lastClickedCard;
+		let lastClickedAction;
+		let lastClickedPosition;
+		let lastClickedPlayer;
+		let adjacentCard;
+		let powerCounter;
+		let moveCounter;
+
+
+////////////////////////////////////////////////////////////   ACTION BUTTON CLICK LISTENERS   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		// add button click listener
+		document.getElementById("add-button").addEventListener("click", function() {
+			let addedValue = addScore(lastClickedCard, players, players[activePlayer], defaultAddValue); // add to player's score
+			updateChosenCard(cards, lastClickedCard, players[activePlayer]);
+			document.getElementById("chat-interface").innerHTML += "</b> added <b>" + addedValue + "</b> to <b>(" + (lastClickedCard.row+1) + "," + (lastClickedCard.col+1) + ")</b><br>";
+			resetButtons(actionButtons, positionButtons, playerButtons); // reset buttons ready for next action
+			activePlayer = cycleNextTurn(playersInGame, activePlayer);
+		});
+		
+		// replace button click listener
+		document.getElementById("replace-button").addEventListener("click", function() {
+			resetButtons(actionButtons, positionButtons, playerButtons); // reset buttons from previous action
+			positionButtons.style.display = "none"; // hide position button container if showing from previous action
+			actionButtons.querySelectorAll("*").forEach(child => { child.style.display = "block" }); // if player clicked on replace during a different action, reset visiblity of action buttons...
+			if (lastClickedCard.scores.reduce((acc, score) => acc + score, 0) === lastClickedCard.number) { document.getElementById("add-button").style.display = "none"; }; // ... and hide add button if card is full
+			if (lastClickedCard.scores.reduce((acc, score) => acc + score, 0) !== lastClickedCard.number || lastClickedCard.face.style.color !== players[activePlayer].color) { document.getElementById("power-button").style.display = "none"; }; // ... and hide power button if player doesn't own the card
+			document.getElementById("replace-button").disabled = "true"; // disable replace button to show player has selected replace action
+			players.filter(player => lastClickedCard.scores[player.number] !== 0 && playersInGame.includes(player) && player.name !== players[activePlayer].name).forEach(player => { document.getElementById(player.name).style.display = "block"; }); // only show player buttons who have score and are in the game
+			lastClickedAction = "replace";
+			// go to player button listener case "replace" ...
+		});
+		
+		// wheel button click listener
+		document.getElementById("wheel-button").addEventListener("click", function() {
+			resetButtons(actionButtons, positionButtons, playerButtons); // reset buttons from previous action
+			actionButtons.querySelectorAll("*").forEach(child => { child.style.display = "block" }); // if player clicked on wheel during a different action, reset visiblity of action buttons...
+			if (lastClickedCard.scores.reduce((acc, score) => acc + score, 0) === lastClickedCard.number) { document.getElementById("add-button").style.display = "none"; }; // ... and hide add button if card is full
+			if (lastClickedCard.scores.reduce((acc, score) => acc + score, 0) !== lastClickedCard.number || lastClickedCard.face.style.color !== players[activePlayer].color) { document.getElementById("power-button").style.display = "none"; }; // ... and hide power button if player doesn't own the card
+			document.getElementById("wheel-button").disabled = true; // disable wheel button to show player has selected wheel action
+			positionButtons.style.display = "block"; // make position button container visible
+			showPositionButtons(cards, lastClickedCard, positionButtons); // show position buttons for surrounding cards		
+			lastClickedAction = "wheel";
+			// go to position button listener case "wheel" ...
+		});
+		
+		// power button click listener
+		document.getElementById("power-button").addEventListener("click", function() {
+			resetButtons(actionButtons, positionButtons, playerButtons); // reset buttons from previous action
+			actionButtons.querySelectorAll("*").forEach(child => { child.style.display = "block" }); // show action buttons
+			if (lastClickedCard.scores.reduce((acc, score) => acc + score, 0) === lastClickedCard.number) { document.getElementById("add-button").style.display = "none"; }; // hide add button if card is full
+			document.getElementById("power-button").disabled = true; // disable power button to show its selected
+			positionButtons.style.display = "block"; // make position button container visible
+			showPositionButtons(cards, lastClickedCard, positionButtons); // show position buttons for surrounding cards	
+			moveCounter = 0; // reset counter to track the two steps of the move power
+			powerCounter = 0; // reset counter to track when player has finished their power i.e. done an action twice
+			lastClickedAction = "power-" + lastClickedCard.number;
+			// go to one of the position button listener "power" cases
+		});
+
+
+//////////////////////////////////////////////////////////////////    POSITION BUTTON CLICK LISTENERS    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		// position button click listeners
+		positionButtons.querySelectorAll("*").forEach(b => {
+			document.getElementById(b.id).addEventListener("click", function() {
+				lastClickedPosition = b;
+				switch (lastClickedAction) {
+					
+					case "wheel":
+						positionButtons.querySelectorAll("*").forEach(child => { child.disabled = false; }); // enable all position buttons from previous actions
+						b.disabled = true; // disable position button to show its selected
+						resetButtons(playerButtons); // reset player buttons if different position button is selected halfway through action
+						adjacentCard = surroundingCards.filter(card => { return card.name === b.id; }).find(card => card); // get the card corresponding to selected position button...
+						players.filter(player => adjacentCard.scores[player.number] !== 0 && playersInGame.includes(player) && player.name !== players[activePlayer].name).forEach(player => { document.getElementById(player.name).style.display = "block"; }); // ...and show only player buttons who have score and are in the game 
+						break;
+						// go to player button listener case "wheel" ...
+					
+					case "power-3": // 3 power = replace 1, twice
+						actionButtons.querySelectorAll("*").forEach(child => { child.disabled = true; }); // disable action buttons
+						resetButtons(playerButtons); // reset player buttons from previous action iteraction
+						adjacentCard = surroundingCards.filter(card => { return card.name === b.id; }).find(card => card); // get the card corresponding to selected position button...
+						players.filter(player => adjacentCard.scores[player.number] !== 0 && playersInGame.includes(player) && player.name !== players[activePlayer].name).forEach(player => { document.getElementById(player.name).style.display = "block"; }); // ...and show only player buttons who have score and are in the game 
+						// go to player button listener case "power-3" ...
+						break;
+						
+					case "power-5": // 5 power = add 1, twice
+						actionButtons.querySelectorAll("*").forEach(child => { child.disabled = true; }); // disable action buttons
+						adjacentCard = surroundingCards.filter(card => { return card.name === b.id; }).find(card => card); // get the card corresponding to selected position button...
+						let addedValue = addScore(adjacentCard, players, players[activePlayer], 1); // add to player score
+						document.getElementById("chat-interface").innerHTML += "</b> used their " + lastClickedCard.number + " power to add <b>" + addedValue + "</b> to <b>(" + (adjacentCard.row+1) + "," + (adjacentCard.col+1) + ")</b><br>";
+						powerCounter++;
+						if (powerCounter === 2) { // if player has added twice...
+							updateChosenCard(cards, lastClickedCard, players[activePlayer]);
+							resetButtons(actionButtons, positionButtons); // reset buttons, as action is complete
+							cardPowerActivations[activePlayer] = scoreTable.rows[activePlayer].cells[3].innerHTML = cardPowerActivations[activePlayer] += 1; // update scores table
+							activePlayer = cycleNextTurn(playersInGame, activePlayer);
+						}; // power-5 action is complete
+						break;
+						
+					case "power-7": // 7 power = move 1, twice
+						actionButtons.querySelectorAll("*").forEach(child => { child.disabled = true; }); // disable action buttons
+						resetButtons(playerButtons); // reset player buttons from previous action iteraction
+						adjacentCard = surroundingCards.filter(card => { return card.name === b.id; }).find(card => card); // get the card corresponding to selected position button...
+						
+						if (moveCounter === 0) { // first step of move action - pick up 1 score from a player...
+							players.filter(player => adjacentCard.scores[player.number] !== 0 && playersInGame.includes(player) && player.name !== players[activePlayer].name)
+								.forEach(player => { document.getElementById(player.name).style.display = "block"; }); // only show player buttons who have score and are in the game
+							// go to player button listener case "power-7" ...
+							
+						} else { // if player has completed first step of the move action (picking up score from a player)...
+							addScore(adjacentCard, players, lastClickedPlayer, 1); // add it to the selected card
+							document.getElementById("chat-interface").innerHTML += "</b> used their " + lastClickedCard.number + " power to move <b>" + 1 + "</b> from <b style='color: " + lastClickedPlayer.color + ";'>" + lastClickedPlayer.name + "</b> to <b>(" + (adjacentCard.row+1) + "," + (adjacentCard.col+1) + ")</b><br>";
+							moveCounter = 0; // resetting counter for the second iteration of the power-7 action
+							powerCounter++;
+							if (powerCounter === 2) { // if player has completed both move actions in power-7 action
+								updateChosenCard(cards, lastClickedCard, players[activePlayer]);
+								resetButtons(actionButtons, positionButtons, playerButtons); // reset buttons, as action is complete
+								cardPowerActivations[activePlayer] = scoreTable.rows[activePlayer].cells[3].innerHTML = cardPowerActivations[activePlayer] += 1; // update scores table
+								activePlayer = cycleNextTurn(playersInGame, activePlayer);
+							}; // power-7 action is complete
+						};
+						break;
+				};
+			});
+		});
+
+
+//////////////////////////////////////////////////////////////////    PLAYER BUTTON CLICK LISTENERS    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		// player button click listeners
+		playersInGame.forEach(player => {
+			document.getElementById(player.name).addEventListener("click", function() {	
+				switch (lastClickedAction) {
+
+					// replace action
+					case "replace":
+						let replacedValue = addScore(lastClickedCard, players, player, -defaultReplaceValue); // replace score from this player...
+						addScore(lastClickedCard, players, players[activePlayer], -replacedValue); // and add to active player's score
+						updateChosenCard(cards, lastClickedCard, players[activePlayer]);
+						document.getElementById("chat-interface").innerHTML += "</b> replaced <b>" + -replacedValue + "</b> from <b style='color: " + player.color + ";'>" + player.name + "</b> on <b>(" + (lastClickedCard.row+1) + "," + (lastClickedCard.col+1) + ")</b><br>";
+						resetButtons(actionButtons, positionButtons, playerButtons); // reset buttons ready for next action
+						activePlayer = cycleNextTurn(playersInGame, activePlayer);
+						break; // replace action is complete
+					
+					// wheel action
+					case "wheel":					
+						cards.forEach(child => { child.face.style.pointerEvents = "none"; }); // make cards not clickable once a player button is clicked during the wheel action (it's too late to back out now)
+						actionButtons.querySelectorAll("*").forEach(child => { child.disabled = true; }); // disable action buttons (it's too late to change action now)
+						lastClickedPosition.style.display = "none"; // hide selected position button so it can't be clicked again during this wheel action
+						resetButtons(playerButtons); // reset player buttons for the second iteration of the wheel action
+						let replacedWheelValue = addScore(adjacentCard, players, player, -defaultWheelValue); // replace score from this player...
+						addScore(adjacentCard, players, players[activePlayer], -replacedWheelValue); // and add to active player's score
+						updateChosenCard(cards, lastClickedCard, players[activePlayer]);
+						document.getElementById("chat-interface").innerHTML += "</b> used wheel to replace <b>" + -replacedWheelValue + "</b> from <b style='color: " + player.color + ";'>" + player.name + "</b> on <b>(" + (adjacentCard.row+1) + "," + (adjacentCard.col+1) + ")</b><br>";
+						if ([...positionButtons.querySelectorAll("*")].every(b => b.style.display === "none")) { // if all position buttons are disabled...
+							resetButtons(actionButtons, positionButtons, playerButtons); // reset buttons, as action is complete
+							cards.forEach(child => { child.face.style.pointerEvents = "auto"; }); // make cards clickable again, as action is complete
+							positionButtons.style.display = "none"; // hide position button container
+							activePlayer = cycleNextTurn(playersInGame, activePlayer);
+						}; // wheel action is complete
+						break;
+						
+					// power action for 3 card
+					case "power-3":
+						let replaceNum_3 = adjacentCard.scores[player.number] < 1 ? adjacentCard.scores[player.number] : 1; // can't replace more than another player has on a card
+						addScore(adjacentCard, players, player, -replaceNum_3); // replace score from selected player...
+						addScore(adjacentCard, players, players[activePlayer], replaceNum_3); // and add to active player's score
+						document.getElementById("chat-interface").innerHTML += "</b> used their " + lastClickedCard.number + " power to replace <b>" + replaceNum_3 + "</b> from <b style='color: " + player.color + ";'>" + player.name + "</b> on <b>(" + (adjacentCard.row+1) + "," + (adjacentCard.col+1) + ")</b><br>";
+						resetButtons(playerButtons); // reset player buttons between move iterations
+						powerCounter++;
+						if (powerCounter === 2) { // if player has completed their power
+							updateChosenCard(cards, lastClickedCard, players[activePlayer]);
+							resetButtons(actionButtons, positionButtons, playerButtons); // reset buttons, as action is complete
+							cardPowerActivations[activePlayer] = scoreTable.rows[activePlayer].cells[3].innerHTML = cardPowerActivations[activePlayer] += 1; // update scores table
+							activePlayer = cycleNextTurn(playersInGame, activePlayer);
+						} // power-3 action is complete
+						break;
+						
+					// power action for 7 cards
+					case "power-7":
+						addScore(adjacentCard, players, player, -1); // pick up 1 score from a player...
+						resetButtons(playerButtons);
+						moveCounter++; // move to second step of move action
+						lastClickedPlayer =  player;
+						break;	
+				}
+			});
+		}); // end player button click listeners
+	}; // end createGameBoard function
+
+	
+//////////////////////////////////////////////////////////////////    MAIN    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	createGameBoard(1); // create game on start
+	
+	// create new game when create new game button is clicked
+	document.getElementById("new-game-button").addEventListener("click", function() {
+
+		// remove click listeners from all buttons by replacing them with new buttons
+		document.querySelectorAll('button').forEach(button => { 
+			if (button.id !== "new-game-button") { // except for the create new game button
+				let newButton = document.createElement("button");
+				newButton.id = button.id;
+				newButton.classList.add("button");
+				newButton.innerHTML = button.innerHTML;
+				button.parentNode.replaceChild(newButton, button);
+			};
+		});
+		createGameBoard(document.getElementById("shuffle-checkbox").checked);
+	});
+	
+</script>
